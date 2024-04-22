@@ -1,0 +1,270 @@
+﻿@page "/skillmatrix"
+@using CMI.Skillmatrix.Components.Shared
+@using CMI.Skillmatrix.Components.DTOs
+@using CMI.Skillmatrix.Services
+@inject MitarbeiterSkillService MitarbeiterSkillService
+@inject MitarbeiterService MitarbeiterService
+@inject AdminService AdminService
+@inject IHttpContextAccessor ContextAccessor
+@inject ISnackbar Snackbar
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+</style>
+
+<h1>Skillmatrix</h1>
+
+<DynamicFilterContainer Filters="@_filters" FiltersChanged="SearchUsersAsync"/>
+
+<MudGrid>
+    <MudItem xs="12" md="12">
+        <MudTable T="MitarbeiterDTO" RowClass="cursor-pointer" RowClassFunc="@SelectedMitarbeiterRowClassFunc" Class="mb-4" Height="350px" FixedHeader="true" Items="@_mitarbeiter" Hover="true"
+                  OnRowClick="RowClickEventMitarbeiterAsync" Filter="new Func<MitarbeiterDTO, bool>(FilterFuncMitarbeiter)"
+                  @bind-SelectedItem="_selectedMitarbeiterDto">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_mitarbeiterSearchString" Placeholder="Suchen" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x => x.Name)">Name</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x => x.Vorname)">Vorname</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x => x.Email)">Email</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Vorname">@context.Vorname</MudTd>
+                <MudTd DataLabel="Email">@context.Email</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudItem>
+    <MudItem xs="12" md="6">
+            <MudTable T="SkillkategorieMitSelbseinschaetzungDTO" RowClass="cursor-pointer" RowClassFunc="@SelectedSkillkategorieRowClassFunc" Height="350px" FixedHeader="true" Items="@_skillkategorieMitSelbseinschaetzung" Hover="true"
+                      OnRowClick="RowClickEventSkillkategorieAsync" Filter="new Func<SkillkategorieMitSelbseinschaetzungDTO,bool>(FilterFuncSkillkategorie)"
+                      @bind-SelectedItem="_selecSkillkategorieMitSelbseinschaetzungDto">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_skillkategorieSearchString" Placeholder="Suchen" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<SkillkategorieMitSelbseinschaetzungDTO, object>(x=>x.SkillkategorieName)">Skillkategorie</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.SkillkategorieName</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTable T="SkillMitSelbsteinschaetzungDTO" RowClass="cursor-pointer" Items="@_skillMitSelbsteinschaetzung" Height="350px" FixedHeader="true" Hover="true" ReadOnly="@readOnly" CanCancelEdit="true" Filter="new Func<SkillMitSelbsteinschaetzungDTO,bool>(FilterFuncSkill)" SortLabel="Sort By" CommitEditTooltip="Commit Edit"
+                      RowEditPreview="BackupSkillMitSelbsteinschaetzung" RowEditCancel="ResetSkillMitSelbsteinschaetzungToOriginalValues"
+                      RowEditCommit="(async item => await UpdateSkillMitSelbsteinschaetzungAsync((SkillMitSelbsteinschaetzungDTO)item))" IsEditRowSwitchingBlocked="true" ApplyButtonPosition="TableApplyButtonPosition.End" EditButtonPosition="TableEditButtonPosition.End" EditTrigger="TableEditTrigger.RowClick">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_searchStringSkillMitSelbsteinschaetzung" Placeholder="Suchen" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                    <MudTh><MudTableSortLabel SortBy="new Func<SkillMitSelbsteinschaetzungDTO, object>(x=>x.SkillName)">Skillname</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<SkillMitSelbsteinschaetzungDTO, object>(x=>x.Selbsteinschaetzung)">Selbsteinschätzung</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Skillname">@context.SkillName</MudTd>
+                <MudTd DataLabel="Selbsteinschätzung">@context.Selbsteinschaetzung</MudTd>
+            </RowTemplate>
+            <RowEditingTemplate>
+                <MudTd DataLabel="Skillname">@context.SkillName</MudTd>
+                <MudTd DataLabel="Selbsteinschätzung">
+                    <MudNumericField @bind-Value="@context.Selbsteinschaetzung" Label="Einschätzung" Variant="Variant.Filled" Margin="Margin.Dense" Min="0" Max="4" Class="ml-2"/>
+                </MudTd>
+            </RowEditingTemplate>
+            <EditButtonContent Context="button">
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@button.ButtonAction" Disabled="@button.ButtonDisabled" />
+            </EditButtonContent>
+         </MudTable>
+    </MudItem>
+</MudGrid>
+
+
+@code {
+    private bool readOnly;
+    private string _mitarbeiterSearchString = "";
+    private string _skillkategorieSearchString = "";
+    private string _searchStringSkillMitSelbsteinschaetzung = "";
+    List<MitarbeiterDTO> _mitarbeiter = new();
+    List<FilterModel> _filters = new();
+    ICollection<SkillkategorieMitSelbseinschaetzungDTO> _skillkategorieMitSelbseinschaetzung = new List<SkillkategorieMitSelbseinschaetzungDTO>();
+    ICollection<SkillMitSelbsteinschaetzungDTO> _skillMitSelbsteinschaetzung = new List<SkillMitSelbsteinschaetzungDTO>();
+    private SkillMitSelbsteinschaetzungDTO SkillMitSelbsteinschaetzungBeforeEdit;
+
+    MitarbeiterDTO _selectedMitarbeiterDto;
+    SkillkategorieMitSelbseinschaetzungDTO _selecSkillkategorieMitSelbseinschaetzungDto;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadAllMitarbeiterAsync();
+        }
+    }
+
+    // Mitarbeiter Table
+    // ************************
+
+    private async Task LoadAllMitarbeiterAsync()
+    {
+        _mitarbeiter = await MitarbeiterService.GetAllMitarbeiterAsync();
+        StateHasChanged();
+    }
+
+    public async Task SearchUsersAsync(List<FilterModel> updatedFilters)
+    {
+        try
+        {
+            _mitarbeiter = await MitarbeiterSkillService.GetMitarbeiterBySkillAndRatingAsync(_filters);
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error beim Filtrieren: {e.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RowClickEventMitarbeiterAsync(TableRowClickEventArgs<MitarbeiterDTO> tableRowClickEventArgs)
+    {
+        await IsAllowedToEditAsync(tableRowClickEventArgs.Item);
+
+        _skillkategorieMitSelbseinschaetzung = Array.Empty<SkillkategorieMitSelbseinschaetzungDTO>();
+        _skillMitSelbsteinschaetzung = Array.Empty<SkillMitSelbsteinschaetzungDTO>();
+
+        _selectedMitarbeiterDto = tableRowClickEventArgs.Item;
+        var clickedMitarbeiter = tableRowClickEventArgs.Item;
+
+        _skillkategorieMitSelbseinschaetzung = await MitarbeiterSkillService.GetSkillkategorieWithSkillsWithSelbsteinschaetzungAsync(clickedMitarbeiter.MitarbeiterId);
+
+        if (_skillkategorieMitSelbseinschaetzung.Count != 0)
+        {
+            _selecSkillkategorieMitSelbseinschaetzungDto = _skillkategorieMitSelbseinschaetzung.ElementAt(0);
+            _skillMitSelbsteinschaetzung = _skillkategorieMitSelbseinschaetzung.ElementAt(0).SkillsMitSelbsteinschaetzung;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task IsAllowedToEditAsync(MitarbeiterDTO mitarbeiterDto)
+    {
+        var currentUser = ContextAccessor.HttpContext?.User?.Identity?.Name;
+
+        if (await AdminService.IsAdminAsync() || mitarbeiterDto.Email == currentUser)
+        {
+            readOnly = false;
+            return;
+        }
+
+        readOnly = true;
+        StateHasChanged();
+    }
+
+    private string SelectedMitarbeiterRowClassFunc(MitarbeiterDTO mitarbeiterDto, int mitarbeiterId)
+    {
+        if (_selectedMitarbeiterDto != null && _selectedMitarbeiterDto.Equals(mitarbeiterDto))
+        {
+            return "selected";
+        }
+        return string.Empty;
+    }
+
+    // Skillkategorie Table
+    // ************************
+
+    private async Task RowClickEventSkillkategorieAsync(TableRowClickEventArgs<SkillkategorieMitSelbseinschaetzungDTO> tableRowClickEventArgs)
+    {
+        _skillMitSelbsteinschaetzung = tableRowClickEventArgs.Item.SkillsMitSelbsteinschaetzung;
+    }
+
+    private string SelectedSkillkategorieRowClassFunc(SkillkategorieMitSelbseinschaetzungDTO skillkategorieMitSelbseinschaetzungDto, int skillkategorieId)
+    {
+        if (_selecSkillkategorieMitSelbseinschaetzungDto != null && _selecSkillkategorieMitSelbseinschaetzungDto.Equals(skillkategorieMitSelbseinschaetzungDto))
+        {
+            return "selected";
+        }
+        return string.Empty;
+    }
+
+    // Skill Table
+    // ************************
+
+    private async Task UpdateSkillMitSelbsteinschaetzungAsync(SkillMitSelbsteinschaetzungDTO skillMitSelbsteinschaetzungDto)
+    {
+        try
+        {
+            int mitarbeiterId = _selectedMitarbeiterDto.MitarbeiterId;
+            int skillId = skillMitSelbsteinschaetzungDto.SkillId;
+            int selbsteinschaetzung = skillMitSelbsteinschaetzungDto.Selbsteinschaetzung;
+
+            await MitarbeiterSkillService.UpdateSelbsteinschaetzungAsync(mitarbeiterId, skillId, selbsteinschaetzung);
+
+            Snackbar.Add("Selbsteinschätzung erfolgreich angepasst", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error beim Anpassen der Selbsteinschätzung: {e.Message}", Severity.Error);
+        }
+    }
+
+    private void BackupSkillMitSelbsteinschaetzung(object element)
+    {
+        SkillMitSelbsteinschaetzungBeforeEdit = new()
+        {
+            Selbsteinschaetzung = ((SkillMitSelbsteinschaetzungDTO)element).Selbsteinschaetzung
+        };
+    }
+
+    private void ResetSkillMitSelbsteinschaetzungToOriginalValues(object element)
+    {
+        ((SkillMitSelbsteinschaetzungDTO)element).Selbsteinschaetzung = SkillMitSelbsteinschaetzungBeforeEdit.Selbsteinschaetzung;
+    }
+
+    // Search bar
+    // ************************
+
+    private bool FilterFuncMitarbeiter(MitarbeiterDTO mitarbeiterDto)
+    {
+        if (string.IsNullOrWhiteSpace(_mitarbeiterSearchString))
+            return true;
+        if (mitarbeiterDto.Name.Contains(_mitarbeiterSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (mitarbeiterDto.Vorname.Contains(_mitarbeiterSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (mitarbeiterDto.Email.Contains(_mitarbeiterSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private bool FilterFuncSkillkategorie(SkillkategorieMitSelbseinschaetzungDTO skillkategorieMitSelbseinschaetzungDto)
+    {
+        if (string.IsNullOrWhiteSpace(_skillkategorieSearchString))
+            return true;
+        if (skillkategorieMitSelbseinschaetzungDto.SkillkategorieName.Contains(_skillkategorieSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private bool FilterFuncSkill(SkillMitSelbsteinschaetzungDTO skillMitSelbsteinschaetzungDto)
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringSkillMitSelbsteinschaetzung))
+            return true;
+        if (skillMitSelbsteinschaetzungDto.SkillName.Contains(_searchStringSkillMitSelbsteinschaetzung, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (skillMitSelbsteinschaetzungDto.Selbsteinschaetzung.ToString().Contains(_searchStringSkillMitSelbsteinschaetzung, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+}

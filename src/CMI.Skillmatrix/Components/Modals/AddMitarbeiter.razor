@@ -1,0 +1,56 @@
+﻿@using CMI.Skillmatrix.Components.DTOs
+@using CMI.Skillmatrix.Services
+@using Microsoft.AspNetCore.Http.HttpResults
+@using System.ComponentModel.DataAnnotations
+@using MudBlazor
+
+@inject ISnackbar Snackbar
+@inject MitarbeiterService MitarbeiterService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="mitarbeiter.Name" MaxLength="30" Label="Name" Required="true" RequiredError="Name ist ein Pflichtfeld!" />
+        <MudTextField T="string" @bind-Value="mitarbeiter.Vorname" MaxLength="30" Label="Vorname" Required="true" RequiredError="Vorname ist ein Pflichtfeld!"/>
+        <MudTextField T="string" @bind-Value="mitarbeiter.Email" Label="Email" Required="true" RequiredError="Email ist ein Pflichtfeld!" Validation="@(new EmailAddressAttribute {ErrorMessage = "Die Email Adresse ist Invalid"})"/>
+        <MudCheckBox Label="IsAdmin" @bind-Value="@mitarbeiter.IsAdmin" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string PageUri { get; set; }
+
+    MitarbeiterDTO mitarbeiter = new();
+
+    public async Task Submit()
+    {
+        try
+        {
+            if (mitarbeiter.Name is null || mitarbeiter.Vorname is null || !new EmailAddressAttribute().IsValid(mitarbeiter.Email))
+            {
+                Snackbar.Add("Bitte alle Pflichtfelder ausfüllen!", Severity.Error);
+            }
+            else
+            {
+                var addedMitarbeiter = await MitarbeiterService.AddMitarbeiterAsync(mitarbeiter);
+                await MitarbeiterService.AddAllSkillsToNewMitarbeiterAsync(addedMitarbeiter);
+                MudDialog.Close(DialogResult.Ok(true));
+                mitarbeiter = new MitarbeiterDTO();
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Es ist ein Fehler passiert: {e.Message}", Severity.Error);
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

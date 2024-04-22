@@ -1,0 +1,33 @@
+﻿@using CMI.Skillmatrix.Services
+@inject SkillkategorieService SkillkategorieService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Möchten Sie die Skillkategorie "@SkillkategorieName" mit @SkillkategorieSkills Skill(s) wirklich löschen?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit">Löschen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string SkillkategorieName { get; set; }
+
+    [Parameter] public int SkillkategorieSkills { get; set; }
+    
+    [Parameter] public int SkillkategorieId { get; set; }
+
+    async Task Submit()
+    {
+        await SkillkategorieService.DeleteSkillkategorieByIdAsync(SkillkategorieId);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

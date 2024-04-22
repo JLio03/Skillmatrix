@@ -1,0 +1,63 @@
+﻿@using CMI.Skillmatrix.Components.DTOs
+@using CMI.Skillmatrix.Services
+@using CMI.Skillmatrix.Components.Data.Models
+@inject ISnackbar Snackbar
+@inject SkillkategorieService SkillkategorieService
+@inject SkillService SkillService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="SkillkategorieDTO" @bind-Value="skill.Skillkategorie" Required="true" Label="Skillkategorie" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Filled">
+            @foreach (var skillkategorie in skillkategories)
+            {
+                <MudSelectItem Value="skillkategorie">@skillkategorie.SkillkategorieName</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="skill.SkillName" Label="Name" Required="true" RequiredError="SkillName ist ein Pflichtfeld!"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    List<SkillkategorieDTO> skillkategories = new();
+
+    SkillDTO skill = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        skillkategories = await SkillkategorieService.GetAllSkillkategorienAsync();
+    }
+
+    public async Task Submit()
+    {
+        try
+        {
+            if (skill.Skillkategorie is null || skill.SkillName is null)
+            {
+                Snackbar.Add("Bitte alle Pflichtfelder ausfüllen!", Severity.Error);
+            }
+            else
+            {
+                var addedSkill = await SkillService.AddSkillAsync(skill);
+                await SkillService.AddSkillToAllMitarbeiterAsync(addedSkill);
+                MudDialog.Close(DialogResult.Ok(true));
+                skill = new SkillDTO();
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Es ist ein Fehler passiert: {e.Message}", Severity.Error);
+        }
+
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,35 @@
+name: Pre-Merge Validates
+on: 
+  pull_request:
+    branches:  
+      - develop
+      
+jobs:
+  pre_merge_validates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Add cmi package Feeds
+        uses: CMInformatik/ci-add-nuget-feed@master
+        with:
+          github-token: ${{ secrets.CMI_GITHUB_TOKEN }}
+
+      - name: Apply all codeStyle of high severity
+        id: format
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.CMI_GITHUB_TOKEN }}
+        run: |
+          mapfile -t changedFiles < <(gh pr view --json files -q '.files[].path' | grep -E '\.(cs|csproj|sln|feature|sql|ps1)$')
+          [[ ${#changedFiles[@]} -eq 0 ]] && exit 0 || echo "Detected changes in code"
+          
+          slnFile="$(find . -name *.sln | head -n1)"
+
+          dotnet format style "$slnFile" --verify-no-changes --no-restore --severity error --include "${changedFiles[@]}"
+          dotnet format analyzers "$slnFile" --verify-no-changes --no-restore --severity error --include "${changedFiles[@]}"
+
+          rm -f ./NuGet.config
+          
+          ( [[ $(git diff --stat) != '' ]] && echo "hasChanges=true" >> "$GITHUB_OUTPUT") || echo 🙄

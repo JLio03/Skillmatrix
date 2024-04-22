@@ -1,0 +1,22 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using CMI.Skillmatrix.Services
+@inject AdminService AdminService
+
+<MudNavMenu>
+    <MudNavLink Href="/skillmatrix" Icon="@Icons.Material.Filled.TableChart">Skillmatrix</MudNavLink>
+    @if (isAdmin)
+    {
+        <MudNavLink Href="/skillsverwaltung" Icon="@Icons.Material.Filled.Edit">Skillsverwaltung</MudNavLink>
+        <MudNavLink Href="/benutzerverwaltung" Icon="@Icons.Material.Filled.SupervisedUserCircle">Benutzerverwaltung</MudNavLink>
+    }
+</MudNavMenu>
+
+@code
+{
+    private bool isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAdmin = await AdminService.IsAdminAsync();
+    }
+}

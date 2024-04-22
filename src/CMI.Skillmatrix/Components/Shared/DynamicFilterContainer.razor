@@ -1,0 +1,50 @@
+﻿<!-- DynamicFilterContainer.razor -->
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<div>
+    @foreach (var filter in Filters)
+    {
+        <DynamicFilter Filter="@filter" OnRemove="() => RemoveFilter(filter)" />
+    }
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Default" @onclick="AddFilter" Class="ml-2 mt-2 mb-2">Filter Hinzufügen</MudButton>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Search" Color="Color.Primary" @onclick="SearchUsers" Class="ml-2 mt-2 mb-2">Suchen</MudButton>
+</div>
+
+@code {
+    [Parameter]
+    public List<FilterModel> Filters { get; set; }
+
+    [Parameter]
+    public EventCallback<List<FilterModel>> FiltersChanged { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Filters == null)
+        {
+            Filters = new List<FilterModel>();
+        }
+    }
+
+    void AddFilter()
+    {
+        Filters.Add(new FilterModel());
+        NotifyFiltersChanged();
+    }
+
+    void RemoveFilter(FilterModel filter)
+    {
+        Filters.Remove(filter);
+        NotifyFiltersChanged();
+    }
+
+    async Task SearchUsers()
+    {
+        await NotifyFiltersChanged();
+    }
+
+    async Task NotifyFiltersChanged()
+    {
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+}

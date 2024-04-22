@@ -1,0 +1,31 @@
+﻿@using CMI.Skillmatrix.Services
+@inject SkillService SkillService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Möchten Sie den Skill "@SkillName" wirklich löschen?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit">Löschen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string SkillName { get; set; }
+
+    [Parameter] public int SkillId { get; set; }
+
+    async Task Submit()
+    {
+        await SkillService.DeleteSkillByIdAsync(SkillId);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

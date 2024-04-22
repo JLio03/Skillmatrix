@@ -1,0 +1,23 @@
+﻿@page "/Account/AccessDenied"
+@inject NavigationManager NavigationManager
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudContainer Class="text-center">
+        <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 72px; color: red;" />
+        <MudText Typo="Typo.h5" GutterBottom="true">Zugriff verweigert</MudText>
+        <MudText Typo="Typo.body1">Sie haben keine Berechtigung, auf diese Ressource zuzugreifen.</MudText>
+        <MudText Typo="Typo.body1">Bitte kontaktieren Sie jemanden, wenn Sie glauben, dass dies ein Fehler ist.</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@GoBack">Zurück</MudButton>
+    </MudContainer>
+</MudPaper>
+
+@code {
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

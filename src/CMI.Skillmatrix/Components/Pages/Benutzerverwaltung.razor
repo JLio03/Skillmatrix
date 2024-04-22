@@ -1,0 +1,172 @@
+﻿@page "/benutzerverwaltung"
+@using CMI.Skillmatrix.Components.DTOs
+@using CMI.Skillmatrix.Components.Modals
+@using CMI.Skillmatrix.Services
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject MitarbeiterService MitarbeiterService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<h1>Benutzerverwaltung</h1>
+
+<MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" @onclick="AddMitarbeiterAsync" Class="mt-4 mb-4">Mitarbeiter hinzufügen</MudButton>
+
+<MudTable T="MitarbeiterDTO" Items="@Mitarbeiter" FixedHeader="true" Height="calc(100vh - 300px)" Hover="true" ReadOnly="false" CanCancelEdit="true"
+          Filter="new Func<MitarbeiterDTO,bool>(FilterFunc)"
+          @bind-SelectedItem="selectedItem1" SortLabel="Sort By" CommitEditTooltip="Commit Edit"
+          RowEditPreview="BackupMitarbeiter" RowEditCancel="ResetMitarbeiterToOriginalValues"
+          RowEditCommit="(async item => await UpdateMitarbeiterAsync((MitarbeiterDTO)item))" IsEditRowSwitchingBlocked="true" 
+          ApplyButtonPosition="TableApplyButtonPosition.End" EditButtonPosition="TableEditButtonPosition.End" 
+          EditTrigger="TableEditTrigger.RowClick">
+    <ToolBarContent>
+        <MudTextField @bind-Value="searchString" Placeholder="Suchen" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x=>x.Vorname)">Vorname</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x=>x.Email)">Email</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<MitarbeiterDTO, object>(x=>x.IsAdmin)">IsAdmin</MudTableSortLabel></MudTh>
+        <MudTh>Aktionen</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Vorname">@context.Vorname</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="IsAdmin">@context.IsAdmin</MudTd>
+        <MudTd DataLabel="Aktionen">
+            <MudButton Variant="Variant.Filled" OnClick="() => DeleteMitarbeiterAsync(context)" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" />
+        </MudTd>
+    </RowTemplate>
+    <RowEditingTemplate>
+        <MudTd DataLabel="Name">
+            <MudTextField @bind-Value="@context.Name" Required />
+        </MudTd>
+        <MudTd DataLabel="Vorname">
+            <MudTextField @bind-Value="@context.Vorname" Required />
+        </MudTd>
+        <MudTd DataLabel="Email">
+            <MudTextField @bind-Value="@context.Email" Required />
+        </MudTd>
+        <MudTd DataLabel="IsAdmin">
+            <MudCheckBox @bind-Value="@context.IsAdmin"/>
+        </MudTd>
+        <MudTd>
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" />
+        </MudTd>
+    </RowEditingTemplate>
+    <EditButtonContent Context="button">
+        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@button.ButtonAction" Disabled="@button.ButtonDisabled" />
+    </EditButtonContent>
+ </MudTable>
+
+@code {
+    private string searchString = "";
+    private MitarbeiterDTO selectedItem1 = null;
+    private MitarbeiterDTO mitarbeiterBeforeEdit;
+    private IEnumerable<MitarbeiterDTO> Mitarbeiter = new List<MitarbeiterDTO>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadMitarbeiterAsync();
+            StateHasChanged();
+        }
+    }
+
+    public async Task LoadMitarbeiterAsync()
+    {
+        Mitarbeiter = await MitarbeiterService.GetAllMitarbeiterAsync();
+        StateHasChanged();
+    }
+
+    public async Task AddMitarbeiterAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialog = DialogService.Show<AddMitarbeiter>("Neuer Mitarbeiter", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await LoadMitarbeiterAsync();
+            StateHasChanged();
+            Snackbar.Add("Mitarbeiter erfolgreich erstellt!", Severity.Success);
+        }
+    }
+
+    private async Task UpdateMitarbeiterAsync(MitarbeiterDTO mitarbeiterDto)
+    {
+        try
+        {
+            await MitarbeiterService.UpdateMitarbeiterAsync(mitarbeiterDto);
+            await LoadMitarbeiterAsync();
+            Snackbar.Add("Mitarbeiter erfolgreich angepasst", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error beim Anpassen des Mitarbeiters: {e.Message}", Severity.Error);
+        }
+    }
+
+    public async Task DeleteMitarbeiterAsync(MitarbeiterDTO mitarbeiterDto)
+    {
+        var mitarbeiterVornameName = $"{mitarbeiterDto.Vorname} {mitarbeiterDto.Name}";
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var parameters = new DialogParameters { 
+            { "MitarbeiterVornameName", mitarbeiterVornameName },
+            { "MitarbeiterId", mitarbeiterDto.MitarbeiterId }
+        };
+
+        var dialog = DialogService.Show<DeleteMitarbeiter>("Mitarbeiter löschen", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await LoadMitarbeiterAsync();
+            StateHasChanged();
+            Snackbar.Add($"Mitarbeiter {mitarbeiterVornameName} erfolgreich gelöscht!", Severity.Success);
+        }
+    }
+
+    private void BackupMitarbeiter(object element)
+    {
+        mitarbeiterBeforeEdit = new()
+        {
+            MitarbeiterId = ((MitarbeiterDTO)element).MitarbeiterId,
+            Name = ((MitarbeiterDTO)element).Name,
+            Vorname = ((MitarbeiterDTO)element).Vorname,
+            Email = ((MitarbeiterDTO)element).Email,
+            IsAdmin = ((MitarbeiterDTO)element).IsAdmin
+        };
+    }
+
+    private void ResetMitarbeiterToOriginalValues(object element)
+    {
+        ((MitarbeiterDTO)element).MitarbeiterId = mitarbeiterBeforeEdit.MitarbeiterId;
+        ((MitarbeiterDTO)element).Name = mitarbeiterBeforeEdit.Name;
+        ((MitarbeiterDTO)element).Vorname = mitarbeiterBeforeEdit.Vorname;
+        ((MitarbeiterDTO)element).Email = mitarbeiterBeforeEdit.Email;
+        ((MitarbeiterDTO)element).IsAdmin = mitarbeiterBeforeEdit.IsAdmin;
+    }
+
+    private bool FilterFunc(MitarbeiterDTO element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Vorname.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+}

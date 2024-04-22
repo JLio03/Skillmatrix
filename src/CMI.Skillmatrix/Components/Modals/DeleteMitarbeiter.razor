@@ -1,0 +1,32 @@
+﻿@using CMI.Skillmatrix.Services
+@inject ISnackbar Snackbar
+@inject MitarbeiterService MitarbeiterService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Möchten Sie den Mitarbeiter "@MitarbeiterVornameName" wirklich löschen?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="SubmitAsync">Löschen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string MitarbeiterVornameName { get; set; }
+
+    [Parameter] public int MitarbeiterId { get; set; }
+
+    async Task SubmitAsync()
+    {
+        await MitarbeiterService.DeleteMitarbeiterByIdAsync(MitarbeiterId);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

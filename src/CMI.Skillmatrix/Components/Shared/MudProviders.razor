@@ -1,0 +1,29 @@
+﻿@using MudBlazor.Utilities
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudThemeProvider Theme="CmiTheme" />
+@code {
+    MudTheme CmiTheme = new()
+        {
+            Palette = new PaletteLight()
+            {
+                Primary = new MudColor("#009fe3"),
+                Secondary = new MudColor("#8592a4"),
+                AppbarBackground = new MudColor("#009fe3"),
+                Background = new MudColor("#ebebed")
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = Colors.Blue.Lighten1
+            },
+
+            LayoutProperties = new LayoutProperties()
+            {
+                DrawerWidthLeft = "260px",
+                DrawerWidthRight = "300px"
+            }
+        };
+}
+<MudDialogProvider />
+<MudSnackbarProvider />

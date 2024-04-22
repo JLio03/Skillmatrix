@@ -1,0 +1,291 @@
+﻿@page "/skillsverwaltung"
+@using CMI.Skillmatrix.Components.DTOs
+@using CMI.Skillmatrix.Services
+@using CMI.Skillmatrix.Components.Data.Models
+@using CMI.Skillmatrix.Components.Modals
+
+@inject SkillkategorieService SkillkategorieService
+@inject SkillService SkillService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<h1>Skillsverwaltung</h1>
+
+<MudGrid Class="mt-12">
+    <MudItem xs="12" md="6">
+        <h3>Skillkategorien</h3>
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" @onclick="AddSkillkategorieAsync" Class="mt-4 mb-4">Skillkategorie hinzufügen</MudButton>
+        <MudTable T="SkillkategorieDTO" Items="@skillkategorieDtos" FixedHeader="true" Height="calc(100vh - 400px)" Hover="true" ReadOnly="false" CanCancelEdit="true" Filter="new Func<SkillkategorieDTO,bool>(FilterFuncSkillkategorie)"
+                  @bind-SelectedItem="_skillkategorieSelectedItem1" SortLabel="Sort By" CommitEditTooltip="Commit Edit"
+                  RowEditPreview="BackupSkillkategorie" RowEditCancel="ResetSkillkategorieToOriginalValues"
+                  RowEditCommit="(async item => await SkillkategorieHasBeenCommittedAsync((SkillkategorieDTO)item))" IsEditRowSwitchingBlocked="true" ApplyButtonPosition="TableApplyButtonPosition.End" EditButtonPosition="TableEditButtonPosition.End" EditTrigger="TableEditTrigger.RowClick">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_skillkategorieSearchString" Placeholder="Suchen" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh Style="width: 60%">
+                    <MudTableSortLabel SortBy="new Func<SkillkategorieDTO, object>(x => x.SkillkategorieName)">Skillkategorie</MudTableSortLabel>
+                </MudTh>
+                <MudTh Style="width: 40%">Aktionen</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Skillkategorie">@context.SkillkategorieName</MudTd>
+                <MudTd DataLabel="Aktionen">
+                    <MudButton Variant="Variant.Filled" OnClick="() => DeleteSkillkategorieAsync(context)" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error"/>
+                </MudTd>
+            </RowTemplate>
+            <RowEditingTemplate>
+                <MudTd DataLabel="Skillkategorie">
+                    <MudTextField @bind-Value="@context.SkillkategorieName" Required />
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error"/>
+                </MudTd>
+            </RowEditingTemplate>
+            <EditButtonContent Context="button">
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@button.ButtonAction" Disabled="@button.ButtonDisabled" />
+            </EditButtonContent>
+        </MudTable>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <h3>Skills</h3>
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" @onclick="AddSkillAsync" Class="mt-4 mb-4">Skill hinzufügen</MudButton>
+        <MudTable T="SkillDTO" Items="@skillDtos" FixedHeader="true" Height="calc(100vh - 400px)" Hover="true" ReadOnly="false" CanCancelEdit="true" Filter="new Func<SkillDTO,bool>(FilterFuncSkill)"
+                   @bind-SelectedItem="_skillSelectedItem1" SortLabel="Sort By" CommitEditTooltip="Commit Edit"
+                   RowEditPreview="BackupSkill" RowEditCancel="ResetSkillToOriginalValues"
+                   RowEditCommit="(async item => await SkillHasBeenCommittedAsync((SkillDTO)item))" IsEditRowSwitchingBlocked="true" ApplyButtonPosition="TableApplyButtonPosition.End" EditButtonPosition="TableEditButtonPosition.End" EditTrigger="TableEditTrigger.RowClick">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_skillSearchString" Placeholder="Suchen" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh Style="width: 50%">
+                    <MudTableSortLabel SortBy="new Func<SkillDTO, object>(x => x.Skillkategorie.SkillkategorieName)">Skillkategorie</MudTableSortLabel>
+                </MudTh>
+                <MudTh Style="width: 30%">
+                    <MudTableSortLabel SortBy="new Func<SkillDTO, object>(x => x.SkillName)">Skill</MudTableSortLabel>
+                </MudTh>
+                <MudTh Style="width: 20%">Aktionen</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Skillkategorie">@context.Skillkategorie.SkillkategorieName</MudTd>
+                <MudTd DataLabel="Skill">@context.SkillName</MudTd>
+                <MudTd DataLabel="Aktionen">
+                    <MudButton Variant="Variant.Filled" OnClick="() => DeleteSkillAsync(context)" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error"/>
+                </MudTd>
+            </RowTemplate>
+            <RowEditingTemplate>
+                <MudTd DataLabel="Skillkategorie">
+                    <MudSelect T="int" @bind-Value="_skillSelectedItem1.SkillkategorieId" Label="Skillkategorie" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Filled">
+                        @foreach (var skillkategorie in skillkategorieDtos)
+                        {
+                            <MudSelectItem Value="@skillkategorie.SkillkategorieId">@skillkategorie.SkillkategorieName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd DataLabel="SkillName">
+                    <MudTextField @bind-Value="@context.SkillName" Required />
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" />
+                </MudTd>
+            </RowEditingTemplate>
+            <EditButtonContent Context="button">
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@button.ButtonAction" Disabled="@button.ButtonDisabled" />
+            </EditButtonContent>
+        </MudTable>
+    </MudItem>
+</MudGrid>
+
+
+
+@code {
+    private bool ronly = false;
+
+    private IEnumerable<SkillkategorieDTO> skillkategorieDtos = new List<SkillkategorieDTO>();
+    private IEnumerable<SkillDTO> skillDtos = new List<SkillDTO>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadSkillkategorieAndSkillsAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSkillkategorieAndSkillsAsync()
+    {
+        skillkategorieDtos = await SkillkategorieService.GetAllSkillkategorienAsync();
+        skillDtos = await SkillService.GetAllSkillsAsync();
+        StateHasChanged();
+    }
+
+    // Skillkategorie
+    //***************/
+
+    private string _skillkategorieSearchString = "";
+    private SkillkategorieDTO _skillkategorieSelectedItem1 = null;
+    private SkillkategorieDTO _skillkategorieBeforeEdit;
+
+    public async Task AddSkillkategorieAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<AddSkillkategorie>("Neue Skillkategorie", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await LoadSkillkategorieAndSkillsAsync();
+            StateHasChanged();
+            Snackbar.Add("Skillkategorie erfolgreich hinzugefügt!", Severity.Success);
+        }
+    }
+
+    public async Task DeleteSkillkategorieAsync(SkillkategorieDTO skillkategorieDto)
+    {
+        var skillsWithSkillkategorieId = await SkillkategorieService.GetAmountOfSkillsWithSkillkategorieIdAsync(skillkategorieDto.SkillkategorieId);
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var parameters = new DialogParameters { 
+            { "SkillkategorieName", skillkategorieDto.SkillkategorieName }, 
+            { "SkillkategorieSkills", skillsWithSkillkategorieId },
+            { "SkillkategorieId", skillkategorieDto.SkillkategorieId }
+        };
+        var dialog = DialogService.Show<DeleteSkillkategorie>("Skillkategorie löschen", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await LoadSkillkategorieAndSkillsAsync();
+            StateHasChanged();
+            Snackbar.Add($"Skillkategorie '{skillkategorieDto.SkillkategorieName}' mit {skillsWithSkillkategorieId} Skill(s) erfolgreich gelöscht", Severity.Success);
+        }
+    }
+
+    private async Task SkillkategorieHasBeenCommittedAsync(SkillkategorieDTO skillkategorie)
+    {
+        try
+        {
+            await SkillkategorieService.UpdateSkillkategorieAsync(skillkategorie);
+            await LoadSkillkategorieAndSkillsAsync();
+            Snackbar.Add("Skillkategorie erfolgreich angepasst", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error beim Anpassen der Skillkategorie: {e.Message}", Severity.Error);
+        }
+    }
+
+    private void BackupSkillkategorie(object element)
+    {
+        _skillkategorieBeforeEdit = new()
+        {
+            SkillkategorieId = ((SkillkategorieDTO)element).SkillkategorieId,
+            SkillkategorieName = ((SkillkategorieDTO)element).SkillkategorieName
+        };
+    }
+
+    private void ResetSkillkategorieToOriginalValues(object element)
+    {
+        ((SkillkategorieDTO)element).SkillkategorieId = _skillkategorieBeforeEdit.SkillkategorieId;
+        ((SkillkategorieDTO)element).SkillkategorieName = _skillkategorieBeforeEdit.SkillkategorieName;
+    }
+
+    private bool FilterFuncSkillkategorie(SkillkategorieDTO skillkategorieDto)
+    {
+        if (string.IsNullOrWhiteSpace(_skillkategorieSearchString))
+            return true;
+        if (skillkategorieDto.SkillkategorieName.Contains(_skillkategorieSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    // Skills
+    //***************/
+
+    private string _skillSearchString = "";
+    private SkillDTO _skillSelectedItem1 = null;
+    private SkillDTO _skillBeforeEdit;
+    private HashSet<Skill> _skillSelectedItems1 = new();
+
+    public async Task AddSkillAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<AddSkill>("Neuer Skill", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await LoadSkillkategorieAndSkillsAsync();
+            StateHasChanged();
+            Snackbar.Add("Skill erfolgreich hinzugefügt!", Severity.Success);
+        }
+    }
+
+    public async Task DeleteSkillAsync(SkillDTO skillDto)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var parameters = new DialogParameters {
+            { "SkillName", skillDto.SkillName },
+            { "SkillId", skillDto.SkillId }
+        };
+        var dialog = DialogService.Show<DeleteSkill>("Skill löschen", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await LoadSkillkategorieAndSkillsAsync();
+            StateHasChanged();
+            Snackbar.Add($"Skill '{skillDto.SkillName}' erfolgreich gelöscht!", Severity.Success);
+        }
+    }
+
+    private async Task SkillHasBeenCommittedAsync(SkillDTO skill)
+    {
+        try
+        {
+            await SkillService.UpdateSkillAsync(skill);
+            await LoadSkillkategorieAndSkillsAsync();
+            Snackbar.Add("Skill erfolgreich angepasst", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Error beim Anpassen des Skills: {e.Message}", Severity.Error);
+        }
+    }
+
+    private void BackupSkill(object element)
+    {
+        _skillBeforeEdit = new()
+        {
+            SkillId = ((SkillDTO)element).SkillId,
+            SkillName = ((SkillDTO)element).SkillName,
+            Skillkategorie = ((SkillDTO)element).Skillkategorie
+        };
+    }
+
+    private void ResetSkillToOriginalValues(object element)
+    {
+        ((SkillDTO)element).SkillId = _skillBeforeEdit.SkillId;
+        ((SkillDTO)element).SkillName = _skillBeforeEdit.SkillName;
+        ((SkillDTO)element).Skillkategorie = _skillBeforeEdit.Skillkategorie;
+    }
+
+    private bool FilterFuncSkill(SkillDTO skillDto)
+    {
+        if (string.IsNullOrWhiteSpace(_skillSearchString))
+            return true;
+        if (skillDto.Skillkategorie.SkillkategorieName.Contains(_skillSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (skillDto.SkillName.Contains(_skillSearchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+}

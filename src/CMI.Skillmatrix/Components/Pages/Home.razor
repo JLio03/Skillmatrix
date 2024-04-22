@@ -1,0 +1,6 @@
+﻿@page "/"
+@inject IHttpContextAccessor ContextAccessor
+
+<PageTitle>Skillmatrix home</PageTitle>
+
+<h1>Hallo, @ContextAccessor.HttpContext.User.Identity.Name</h1>

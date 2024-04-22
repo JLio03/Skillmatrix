@@ -1,0 +1,41 @@
+name: PR von Codeowner reviewed
+
+on:
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
+
+jobs:
+  codeowners:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Codeowners
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          function isApproved {
+          for reviewer in "${approver[@]}"; do
+              echo "Try approval of $reviewer"
+              [[ "$reviewer" =~ 'app/' ]] && reviewer="${reviewer:4}"
+              [[ "$2" =~ "${reviewer}" ]] && echo "Approved by: $reviewer" && return 0
+          done
+              canContinue='false'
+          }
+
+          approver=()
+          mapfile -t approver < <(gh pr view $PR --json reviews -q '.reviews[] | select(.state == "APPROVED") | .author["login"]' --repo $GITHUB_REPOSITORY)
+
+          [[ ${#approver[@]} > 0 ]] || ( echo "At least one approver is required" && exit 1)
+
+          canContinue='true'
+          isApproved "any" "${{ vars.CO_GENERAL }}"
+
+          if [[ "$canContinue" == 'true' ]];then
+            exit 0
+          fi
+
+          echo "Some files require further approvals.."
+          exit 1

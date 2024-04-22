@@ -1,0 +1,48 @@
+﻿@using CMI.Skillmatrix.Components.DTOs
+@using CMI.Skillmatrix.Services
+@inject ISnackbar Snackbar
+@inject SkillkategorieService SkillkategorieService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="skillkategorie.SkillkategorieName" 
+                      Label="Name" Required="true" RequiredError="Skillkategoriename ist ein Pflichtfeld!"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    SkillkategorieDTO skillkategorie = new();
+
+    public async Task Submit()
+    {
+        try
+        {
+            if (skillkategorie.SkillkategorieName != null)
+            {
+                await SkillkategorieService.AddSkillkategorieAsync(skillkategorie);
+                MudDialog.Close(DialogResult.Ok(true));
+                skillkategorie = new SkillkategorieDTO();
+            }
+            else
+            {
+                Snackbar.Add("Bitte alle Pflichtfelder ausfüllen!", Severity.Error);
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Es ist ein Fehler passiert: {e.Message}", Severity.Error);
+        }
+        
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

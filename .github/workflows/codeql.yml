@@ -88,5 +88,9 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+
+    - name: Filter SARIF
+      uses: advanced-security/filter-sarif@v1.0.0
+            
       with:
         category: "/language:${{matrix.language}}"
